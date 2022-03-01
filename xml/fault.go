@@ -34,7 +34,7 @@ func (f Fault) Error() string {
 // Fault2XML is a quick 'marshalling' replacemnt for the Fault case.
 func fault2XML(fault Fault) string {
 	buffer := "<methodResponse><fault>"
-	xml, _ := rpc2XML(fault)
+	xml, _ := rpc2XML(fault, false)
 	buffer += xml
 	buffer += "</fault></methodResponse>"
 	return buffer

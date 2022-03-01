@@ -5,7 +5,9 @@
 package xml
 
 import (
+	"math"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -151,6 +153,114 @@ Requiredattribute'user'notfound:
 		}
 		if fault.String != errstr {
 			t.Errorf("fault.String should be:\n\n%s\n\nbut got:\n\n%s\n", errstr, fault.String)
+		}
+	}
+}
+
+type TaggedStructXml2RpcParams struct {
+	Foo    string  `xml:""`                     // Empty tag
+	Bar    int     `xml:"renameBar"`            // Rename, include if empty
+	Str    string  `xml:",omitempty"`           // Use field name, omit if empty
+	Double float64 `xml:"doublename,omitempty"` // Rename, omit if empty
+	IntPtr *int    `xml:"ptrname,omitempty"`    // Rename, omit if empty
+}
+
+type TaggedStructXml2Rpc struct {
+	Params TaggedStructXml2RpcParams
+}
+
+type TestXml2RpcTagsTest struct {
+	Input  string
+	Output *TaggedStructXml2Rpc
+	err    error
+}
+
+func TestXML2RPCTags(t *testing.T) {
+	var (
+		intVal            int = 42
+		smallestDoubleStr     = strconv.FormatFloat(math.SmallestNonzeroFloat64, 'E', -1, 64)
+		tests                 = [...]TestXml2RpcTagsTest{
+			{
+				Input: "<methodCall>" +
+					"<methodName>Test.Method</methodName>" +
+					"<params><param><value><struct>" +
+					"<member><name>Foo</name><value><string>FOO</string></value></member>" +
+					"<member><name>renameBar</name><value><int>123</int></value></member>" +
+					"<member><name>Str</name><value><string>STRING</string></value></member>" +
+					"<member><name>doublename</name><value><double>" + smallestDoubleStr + "</double></value></member>" +
+					"<member><name>ptrname</name><value><int>42</int></value></member>" +
+					"</struct></value></param></params>" +
+					"</methodCall>",
+				Output: &TaggedStructXml2Rpc{
+					Params: TaggedStructXml2RpcParams{
+						Foo:    "FOO",
+						Bar:    123,
+						Str:    "STRING",
+						Double: math.SmallestNonzeroFloat64,
+						IntPtr: &intVal,
+					},
+				},
+				err: nil,
+			},
+			{
+				Input: "<methodCall>" +
+					"<methodName>Test.Method</methodName>" +
+					"<params><param><value><struct>" +
+					"<member><name>Foo</name><value><string>FOO</string></value></member>" +
+					"<member><name>renameBar</name><value><int>123</int></value></member>" +
+					"</struct></value></param></params>" +
+					"</methodCall>",
+				Output: &TaggedStructXml2Rpc{
+					Params: TaggedStructXml2RpcParams{
+						Foo:    "FOO",
+						Bar:    123,
+						Str:    "",
+						Double: 0,
+						IntPtr: nil,
+					},
+				},
+				err: nil,
+			},
+			{
+				Input: "<methodCall>" +
+					"<methodName>Test.Method</methodName>" +
+					"<params><param><value><struct>" +
+					"<member><name>Foo</name><value><string>FOO</string></value></member>" +
+					"<member><name>nonextant</name><value><int>123</int></value></member>" +
+					"<member><name>Str</name><value><string>STRING</string></value></member>" +
+					"<member><name>doublename</name><value><double>" + smallestDoubleStr + "</double></value></member>" +
+					"<member><name>ptrname</name><value><int>42</int></value></member>" +
+					"</struct></value></param></params>" +
+					"</methodCall>",
+				Output: &TaggedStructXml2Rpc{
+					Params: TaggedStructXml2RpcParams{
+						Foo:    "FOO",
+						Bar:    0, // Parsing should not stop before here
+						Str:    "",
+						Double: 0,
+						IntPtr: nil,
+					},
+				},
+				err: FaultApplicationError,
+			},
+		}
+	)
+
+	for i, test := range tests {
+		req := new(TaggedStructXml2Rpc)
+		err := xml2RPC(test.Input, req)
+		if err != test.err {
+			if test.err == nil {
+				t.Errorf("XML2RPC Tagged structure conversion test %d failed: %v", i, err)
+			} else {
+				t.Errorf("XML2RPC Tagged structure conversion test %d did not trigger expected error", i)
+				t.Error("Expected", test.err)
+				t.Error("Got", err)
+			}
+		} else if !reflect.DeepEqual(req, test.Output) {
+			t.Errorf("XML2RPC Tagged structure conversion test %d failed", i)
+			t.Error("Expected", test.Output)
+			t.Error("Got", req)
 		}
 	}
 }

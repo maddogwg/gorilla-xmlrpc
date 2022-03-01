@@ -101,6 +101,17 @@ func getFaultResponse(fault faultValue) Fault {
 	return Fault{Code: code, String: str}
 }
 
+func fieldByXmlTagName(value *reflect.Value, match string) reflect.Value {
+	for i := 0; i < reflect.TypeOf(value.Interface()).NumField(); i++ {
+		field_type := reflect.TypeOf(value.Interface()).Field(i)
+		field_tag := parseXMLTag(field_type)
+		if field_tag.Name == match {
+			return value.Field(i)
+		}
+	}
+	return reflect.Value{}
+}
+
 func value2Field(value value, field *reflect.Value) error {
 	if !field.CanSet() {
 		return FaultApplicationError
@@ -138,6 +149,13 @@ func value2Field(value value, field *reflect.Value) error {
 			// methods in lowercase, which cannot be used
 			field_name := uppercaseFirst(s[i].Name)
 			f := field.FieldByName(field_name)
+			if !f.IsValid() {
+				// Try to find the field by XML tag name
+				f = fieldByXmlTagName(field, s[i].Name)
+				if !f.IsValid() {
+					return FaultApplicationError
+				}
+			}
 			err = value2Field(s[i].Value, &f)
 		}
 	case len(value.Array) != 0:
@@ -164,11 +182,20 @@ func value2Field(value value, field *reflect.Value) error {
 
 	if val != nil {
 		if reflect.TypeOf(val) != reflect.TypeOf(field.Interface()) {
-			fault := FaultInvalidParams
-			fault.String += fmt.Sprintf(": fields type mismatch: %s != %s",
-				reflect.TypeOf(val),
-				reflect.TypeOf(field.Interface()))
-			return fault
+			if (reflect.ValueOf(field.Interface()).Kind() == reflect.Ptr) &&
+				(reflect.TypeOf(field.Interface()).Elem() == reflect.TypeOf(val)) {
+				// Assign as pointer to value type (pointer types are used for
+				// fields that are omitted when empty).
+				p := reflect.New(reflect.TypeOf(val))
+				p.Elem().Set(reflect.ValueOf(val))
+				val = p.Interface()
+			} else {
+				fault := FaultInvalidParams
+				fault.String += fmt.Sprintf(": fields type mismatch: %s != %s",
+					reflect.TypeOf(val),
+					reflect.TypeOf(field.Interface()))
+				return fault
+			}
 		}
 
 		field.Set(reflect.ValueOf(val))
