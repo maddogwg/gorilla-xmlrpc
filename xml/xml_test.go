@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/gorilla/rpc"
+	"github.com/gorilla/rpc/v2"
 )
 
 //////////////////////////////////

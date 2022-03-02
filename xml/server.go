@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/gorilla/rpc"
+	"github.com/gorilla/rpc/v2"
 )
 
 // ----------------------------------------------------------------------------
@@ -84,34 +84,34 @@ func (c *CodecRequest) Method() (string, error) {
 // args is the pointer to the Service.Args structure
 // it gets populated from temporary XML structure
 func (c *CodecRequest) ReadRequest(args interface{}) error {
-	c.err = xml2RPC(c.request.rawxml, args)
-	return nil
+	return xml2RPC(c.request.rawxml, args)
 }
 
 // WriteResponse encodes the response and writes it to the ResponseWriter.
 //
 // response is the pointer to the Service.Response structure
 // it gets encoded into the XML-RPC xml string
-func (c *CodecRequest) WriteResponse(w http.ResponseWriter, response interface{}, methodErr error) error {
+func (c *CodecRequest) WriteResponse(w http.ResponseWriter, response interface{}) {
 	var xmlstr string
-	if c.err == nil {
-		c.err = methodErr
-	}
-	if c.err != nil {
-		var fault Fault
-		switch c.err.(type) {
-		case Fault:
-			fault = c.err.(Fault)
-		default:
-			fault = FaultApplicationError
-			fault.String += fmt.Sprintf(": %v", c.err)
-		}
-		xmlstr = fault2XML(fault)
-	} else {
-		xmlstr, _ = rpcResponse2XML(response)
-	}
 
+	xmlstr, _ = rpcResponse2XML(response)
 	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	w.Write([]byte(xmlstr))
-	return nil
+}
+
+// Writes an error produced by the server.
+func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
+	var xmlstr string
+	var fault Fault
+
+	switch err.(type) {
+	case Fault:
+		fault = err.(Fault)
+	default:
+		fault = FaultApplicationError
+		fault.String += fmt.Sprintf(": %v", err)
+	}
+	xmlstr = fault2XML(fault)
+	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
+	w.Write([]byte(xmlstr))
 }

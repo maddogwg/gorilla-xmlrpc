@@ -24,7 +24,7 @@ package main
 import (
     "log"
     "net/http"
-    "github.com/gorilla/rpc"
+    "github.com/gorilla/rpc/v2"
     "github.com/divan/gorilla-xmlrpc/xml"
 )
 
@@ -122,3 +122,25 @@ For the better understanding, I use terms 'rpc2xml' and 'xml2rpc' instead of 'ma
 
 *  Add more corner cases tests
 
+## Fork ##
+Fork specific changes not yet merged to source (github.com/divan/gorilla-xmlrpc/xml)
+
+#### 1) Apply error returned by RPC functions
+
+The original version ignores them, likely just due to an oversight.
+
+#### 2) Alternate names for parameters
+
+The original version allowed structure field tags (`xml:"<name>"`) to be used for this but limited the variation to lower case of the first letter of the structure field's name.
+
+More accurately, the on-the-wire parameter name could be anything on the send side (client) but the receive side (server) can only find the mapping between the parameters and the structure fields if the difference is limited to the case of the first letter.
+
+This logic has been extended to allow the tag name to be completely independent of the field structure name.
+
+#### 3) Make it possible to for parameters to be marked as optional and omitted
+
+Use structure field tag "omitempty" flag for this (e.g. `xml:"<name>,omitempty"`).
+
+Additionally, both the RPC2XML and XML2RPC logic was extended to treat nil values of pointer fields to mean the parameter is omitted.
+
+#### 4) Upgrade from github.com/gorilla/rpc to github.com/gorilla/rpc/v2
