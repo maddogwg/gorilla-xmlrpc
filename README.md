@@ -123,7 +123,7 @@ For the better understanding, I use terms 'rpc2xml' and 'xml2rpc' instead of 'ma
 *  Add more corner cases tests
 
 ## Fork ##
-Fork specific changes not yet merged to source (github.com/divan/gorilla-xmlrpc/xml)
+Fork specific changes not yet merged to source (github.com/divan/gorilla-xmlrpc)
 
 #### 1) Apply error returned by RPC functions
 
@@ -144,3 +144,5 @@ Use structure field tag "omitempty" flag for this (e.g. `xml:"<name>,omitempty"`
 Additionally, both the RPC2XML and XML2RPC logic was extended to treat nil values of pointer fields to mean the parameter is omitted.
 
 #### 4) Upgrade from github.com/gorilla/rpc to github.com/gorilla/rpc/v2
+
+#### 5) Convert empty XML array to the defined RPC slice type
