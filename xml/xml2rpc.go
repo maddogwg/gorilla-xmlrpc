@@ -158,7 +158,7 @@ func value2Field(value value, field *reflect.Value) error {
 			}
 			err = value2Field(s[i].Value, &f)
 		}
-	case len(value.Array) != 0:
+	case len(value.Array) != 0, value.Raw == "<array><data></data></array>":
 		a := value.Array
 		f := *field
 		slice := reflect.MakeSlice(reflect.TypeOf(f.Interface()),
