@@ -129,7 +129,7 @@ func value2Field(value value, field *reflect.Value) error {
 		val, _ = strconv.Atoi(value.Int4)
 	case value.Double != "":
 		val, _ = strconv.ParseFloat(value.Double, 64)
-	case value.String != "":
+	case value.String != "", value.Raw == "<string></string>":
 		val = value.String
 	case value.Boolean != "":
 		val = xml2Bool(value.Boolean)
