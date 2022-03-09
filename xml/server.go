@@ -50,7 +50,7 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	if method, ok := c.aliases[request.Method]; ok {
 		request.Method = method
 	}
-	return &CodecRequest{request: &request}
+	return &CodecRequest{request: &request, response: &ServerResponse{}}
 }
 
 // ----------------------------------------------------------------------------
@@ -62,11 +62,15 @@ type ServerRequest struct {
 	Method string   `xml:"methodName"`
 	rawxml string
 }
+type ServerResponse struct {
+	rawxml string
+}
 
 // CodecRequest decodes and encodes a single request.
 type CodecRequest struct {
-	request *ServerRequest
-	err     error
+	request  *ServerRequest
+	response *ServerResponse
+	err      error
 }
 
 // Method returns the RPC method for the current request.
@@ -87,16 +91,22 @@ func (c *CodecRequest) ReadRequest(args interface{}) error {
 	return xml2RPC(c.request.rawxml, args)
 }
 
+func (c *CodecRequest) RequestXML() string {
+	return c.request.rawxml
+}
+
 // WriteResponse encodes the response and writes it to the ResponseWriter.
 //
 // response is the pointer to the Service.Response structure
 // it gets encoded into the XML-RPC xml string
 func (c *CodecRequest) WriteResponse(w http.ResponseWriter, response interface{}) {
-	var xmlstr string
-
-	xmlstr, _ = rpcResponse2XML(response)
+	c.response.rawxml, _ = rpcResponse2XML(response)
 	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
-	w.Write([]byte(xmlstr))
+	w.Write([]byte(c.response.rawxml))
+}
+
+func (c *CodecRequest) ResponseXML() string {
+	return c.response.rawxml
 }
 
 // Writes an error produced by the server.
