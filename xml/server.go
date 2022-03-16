@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/gorilla/rpc/v2"
+	"github.com/maddogwg/rpc/v2"
 )
 
 // ----------------------------------------------------------------------------

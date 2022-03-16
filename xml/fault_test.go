@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gorilla/rpc/v2"
+	"github.com/maddogwg/rpc/v2"
 )
 
 //////////////////////////////////
